@@ -1,0 +1,112 @@
+<!--
+@license
+Copyright (c) 2015 Igor Rubinovich <igor.rubinovich@gmail.com>. All rights reserved.
+This code may only be used under the MIT license found at http://opensource.org/licenses/MIT
+-->
+<!--
+** ir-prompt-dialog
+
+## License
+[MIT](http://opensource.org/licenses/MIT) 
+
+-->
+
+<dom-module is="ir-prompt-dialog">
+	<template>
+		<paper-dialog id="dialog">
+		
+		<content></content>
+		
+		<div class="buttons">
+			<paper-button dialog-dismiss on-tap="cancel">Cancel</paper-button>
+			<paper-button dialog-confirm on-tap="promptUpdate">OK</paper-button>
+		</div>
+		</paper-dialog>
+	</template>
+</dom-module>
+
+<script>
+if(!window.ir) window.ir = {};
+
+Polymer({
+	is : "ir-prompt-dialog",
+	attached : function() {
+		var that = this;
+
+		var source = this._$(this.openEventSource);
+
+		source.addEventListener(this.openEvent, function() {
+			that.$.dialog.open();
+		})
+		
+	},
+	
+	promptUpdate : function() {
+		var val, target, source;
+
+		try {
+			source = this._$('[prompt-dialog-source]') || this._$(this.contentValueSource)
+			source = source[0];
+		}
+		catch(e) {
+			throw new Error("Couldn't find a source element");
+		}
+
+		val = this.get(this.contentValueProperty, source);
+
+		if(this.contentValueIsFunction)
+			val = val();
+
+		target = this._$(this.valueTarget);
+
+		if((typeof val == 'object') && this.callOnValue)
+			val = val[this.callOnValue]();
+
+		this.set(this.valueTargetProperty, val, target);
+
+		target.dispatchEvent(new Event('prompt-change'));
+	},
+	
+	_contextChanged : function () {
+		if(this.context == "document")
+			this._$ = document.getElementById
+		else
+		if(this.context == "shadow")
+			this._$ = this.$$;
+	},
+	
+	/** value of the reflected element */
+	properties : {
+		value : { 
+			type : String,
+			observer : "_reflectToNativeClone",
+			notify : true
+		},
+		
+		/** Context of the element: 'document' or 'shadow'. Identifies what selector function will be used to select elements - respectively, document.querySelectorAll or this.$$ */
+		context : { type : String, value : "document", observer : "_contextChanged" },
+		/** element that will cause the dialog to open upon 'openEvent' */
+		openEventSource : { type : String },
+		/** events on source element that triggers dialog opening */
+		openEvent : { type : String, default : "tap" },
+		/** value field to reflect on source element */
+		valueAttr : { type : String, value : "value" },
+		/** optional events from inside the prompt dialog that will close it and apply the selected value. */
+		okEvent : { type : String },
+		/** optional events from inside the prompt dialog that will cancel it. */
+		cancelEvent : { type : String },
+		/** source element id to use upon 'ok'. another way is to mark the source element with prompt-dialog-source, and it prevails over content-value-source */
+		contentValueSource : { type : String },
+		/** attribute on source element to use upon 'ok' */
+		contentValueProperty : { type : String, default : "value" },
+		/** set this to true if the content value is a function */
+		contentValueIsFunction : { type : Boolean },
+		/** target element to set value upon 'ok' */
+		valueTarget : { type : String },
+		/** property (object path) on target element to set value upon 'ok' */
+		valueTargetProperty : { type : String },
+		/** when the value is an object, call this method on it before sending it to valueTarget[valueTargetProperty] */
+		callOnValue : { type : String }
+	}	
+});
+</script>
